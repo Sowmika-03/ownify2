@@ -4,8 +4,8 @@ version = "1.0.0"
 authors = []
 
 [addresses]
-message_board_addr = "0x33c632f28dfef2d9668a98066807c3b0b5759fb01edabc80418c5037768b3909"
-product_registry_addr = "0x33c632f28dfef2d9668a98066807c3b0b5759fb01edabc80418c5037768b3909"
+message_board_addr = "0x0c0e9fc5bcd8f467207c3b49221ff1d1b8ba620b0453735c6e79b79023e32d0e"
+product_registry_addr = "0x0c0e9fc5bcd8f467207c3b49221ff1d1b8ba620b0453735c6e79b79023e32d0e"
 
 [dependencies]
 AptosFramework = { git = "https://github.com/aptos-labs/aptos-framework.git", rev = "mainnet", subdir = "aptos-framework" }

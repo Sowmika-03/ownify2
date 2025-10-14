@@ -1,58 +1,59 @@
 require("dotenv").config();
-const fs = require("node:fs");
-const cli = require("@aptos-labs/ts-sdk/dist/common/cli/index.js");
-const aptosSDK = require("@aptos-labs/ts-sdk")
+const { exec } = require("child_process");
 
 async function publish() {
+  const privateKey = process.env.VITE_MODULE_PUBLISHER_ACCOUNT_PRIVATE_KEY;
+  const network = process.env.VITE_APP_NETWORK || "testnet";
+  
+  // Determine the node URL based on the network
+  const nodeUrl = network === "mainnet" 
+    ? "https://fullnode.mainnet.aptoslabs.com/v1"
+    : `https://fullnode.${network}.aptoslabs.com/v1`;
 
-  if (!process.env.VITE_MODULE_PUBLISHER_ACCOUNT_ADDRESS) {
-    throw new Error(
-      "VITE_MODULE_PUBLISHER_ACCOUNT_PRIVATE_KEY variable is not set, make sure you have set the publisher account address",
-    );
+  if (!privateKey) {
+    throw new Error("VITE_MODULE_PUBLISHER_ACCOUNT_PRIVATE_KEY is not set in your .env file.");
   }
 
-  if (!process.env.VITE_MODULE_PUBLISHER_ACCOUNT_PRIVATE_KEY) {
-    throw new Error(
-      "VITE_MODULE_PUBLISHER_ACCOUNT_PRIVATE_KEY variable is not set, make sure you have set the publisher account private key",
-    );
-  }
+  // This command publishes the contract to the account associated with the private key.
+  // The named addresses in Move.toml will be resolved to this account address.
+  // The `init_module` function is automatically called on the first publish.
+  const command = [
+    "aptos",
+    "move",
+    "publish",
+    "--package-dir",
+    "contract",
+    "--url",
+    nodeUrl,
+    "--private-key",
+    privateKey,
+    "--assume-yes", // Automatically confirm the transaction
+    "--verbose", // Get detailed output
+  ].join(" ");
 
-  const move = new cli.Move();
+  console.log("Publishing contract to your account...");
+  console.log(`Executing command...`);
 
-  move
-    .createObjectAndPublishPackage({
-      packageDirectoryPath: "contract",
-      addressName: "message_board_addr",
-      namedAddresses: {
-        // Publish module to new object, but since we create the object on the fly, we fill in the publisher's account address here
-        message_board_addr: process.env.VITE_MODULE_PUBLISHER_ACCOUNT_ADDRESS,
-      },
-      extraArguments: [`--private-key=${process.env.VITE_MODULE_PUBLISHER_ACCOUNT_PRIVATE_KEY}`,`--url=${aptosSDK.NetworkToNodeAPI[process.env.VITE_APP_NETWORK]}`],
-    })
-    .then((response) => {
-      const filePath = ".env";
-      let envContent = "";
+  const child = exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`Error publishing contract:`);
+      console.error(stderr);
+      // Throwing an error will cause the script to exit with a non-zero code
+      throw new Error(`Failed to publish contract. Details above.`);
+    }
+    
+    console.log(stdout);
+    if(stderr) {
+      console.warn(`Warning during publish: ${stderr}`);
+    }
 
-      // Check .env file exists and read it
-      if (fs.existsSync(filePath)) {
-        envContent = fs.readFileSync(filePath, "utf8");
-      }
+    console.log("\n✅ Contract published successfully!");
+    console.log("The 'get_abi' script will now run to update your frontend interface.");
+  });
 
-      // Regular expression to match the VITE_MODULE_ADDRESS variable
-      const regex = /^VITE_MODULE_ADDRESS=.*$/m;
-      const newEntry = `VITE_MODULE_ADDRESS=${response.objectAddress}`;
-
-      // Check if VITE_MODULE_ADDRESS is already defined
-      if (envContent.match(regex)) {
-        // If the variable exists, replace it with the new value
-        envContent = envContent.replace(regex, newEntry);
-      } else {
-        // If the variable does not exist, append it
-        envContent += `\n${newEntry}`;
-      }
-
-      // Write the updated content back to the .env file
-      fs.writeFileSync(filePath, envContent, "utf8");
-    });
+  // Pipe stdout and stderr to the parent process to see the output in real-time
+  child.stdout.pipe(process.stdout);
+  child.stderr.pipe(process.stderr);
 }
+
 publish();
