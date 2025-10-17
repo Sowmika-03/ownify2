@@ -223,45 +223,44 @@ const ProductRegistry: React.FC = () => {
     }
   };
 
-  /**
-   * Verify product authenticity (placeholder implementation)
-   */
   const handleVerifyProduct = async () => {
     if (!verifyProductId) {
-      toast({
-        title: "Error",
-        description: "Please enter a product ID.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please enter a product ID.", variant: "destructive" });
       return;
     }
 
     try {
       setLoading(true);
-      
-      // For demo purposes, we'll create a mock product metadata
-      // In a real implementation, this would query the blockchain
-      const mockMetadata: ProductMetadata = {
-        product_id: verifyProductId,
-        nft_address: "0x123...",
-        manufacturer_address: "0x456...",
-        batch_number: "BATCH-20240814-ABC",
-        manufacture_timestamp: Date.now().toString(),
-        status: PRODUCT_STATUS.ACTIVE,
-        owner: account?.address?.toString() || "0x789...",
-        activation_timestamp: Date.now().toString()
-      };
+      setSelectedProduct(null);
 
-      setSelectedProduct(mockMetadata);
-      toast({
-        title: "Authentic Product!",
-        description: `Product ${verifyProductId} is verified authentic.`,
+      const registryResource = await aptosClient().getAccountResource({
+        accountAddress: PRODUCT_REGISTRY_ABI.address,
+        resourceType: `${PRODUCT_REGISTRY_ABI.address}::product_registry::ProductRegistry`,
       });
+
+      const productsTableHandle = (registryResource as any).products.handle;
+
+      const productMetadata = await aptosClient().getTableItem<ProductMetadata>({
+        handle: productsTableHandle,
+        data: {
+          key: verifyProductId,
+          key_type: "0x1::string::String",
+          value_type: `${PRODUCT_REGISTRY_ABI.address}::product_registry::ProductMetadata`,
+        },
+      });
+
+      setSelectedProduct(productMetadata);
+      toast({
+        title: "Success! Product Verified!",
+        description: `Product ${verifyProductId} is authentic.`,
+      });
+
     } catch (error) {
       console.error('Error verifying product:', error);
+      setSelectedProduct(null);
       toast({
-        title: "Error",
-        description: "Failed to verify product. Please try again.",
+        title: "Verification Failed",
+        description: "Could not find a product with that ID. Please check the ID and try again.",
         variant: "destructive",
       });
     } finally {
