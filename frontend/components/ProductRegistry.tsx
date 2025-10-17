@@ -342,7 +342,7 @@ const ProductRegistry: React.FC = () => {
       <Card className="max-w-md mx-auto mt-8">
         <CardHeader className="text-center">
           <Package className="w-12 h-12 mx-auto mb-4 text-blue-600" />
-          <CardTitle>Product Registry</CardTitle>
+          <CardTitle>NFT Ownership Tracker</CardTitle>
           <CardDescription>
             Connect your wallet to manage product NFTs
           </CardDescription>
@@ -355,7 +355,7 @@ const ProductRegistry: React.FC = () => {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">
-          🏷️ Product Registry
+          NFT Ownership Tracker
         </h1>
         <p className="text-lg text-gray-600">
           NFT-based Proof of Product Ownership on Aptos

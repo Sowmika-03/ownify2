@@ -32,7 +32,7 @@ module product_registry_addr::product_registry {
     const STATUS_RETIRED: u8 = 4;
 
     // Collection and token configuration
-    const COLLECTION_NAME: vector<u8> = b"Product Registry NFTs";
+    const COLLECTION_NAME: vector<u8> = b"OWNIFY Ownership Tracker NFTs";
     const COLLECTION_DESCRIPTION: vector<u8> = b"NFTs representing proof of product ownership";
 
     // Product metadata structure

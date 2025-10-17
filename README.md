@@ -1,4 +1,4 @@
-## 🏷️ NFT-Based Product Ownership System
+## 🏷️ OWNIFY: NFT Ownership Tracker
 
 A full-stack decentralized application built on the **Aptos blockchain** that enables **NFT-based proof of product ownership** with comprehensive lifecycle management.
 

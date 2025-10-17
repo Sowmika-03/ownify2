@@ -33,7 +33,7 @@ function App() {
               onClick={() => setCurrentView('registry')}
               className="font-medium"
             >
-              🏷️ Product Registry
+              🏷️ Ownership Tracker
             </Button>
             <Button 
               variant={currentView === 'wallet-test' ? 'default' : 'outline'}

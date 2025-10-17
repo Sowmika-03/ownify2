@@ -37,7 +37,7 @@ const WalletConnectionTest: React.FC = () => {
             Wallet Connection Test
           </CardTitle>
           <CardDescription>
-            Test and verify your wallet connection for the NFT Product Registry
+            Test and verify your wallet connection for the NFT Ownership Tracker
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

@@ -20,7 +20,7 @@ const DemoPage: React.FC = () => {
       {/* Hero Section */}
       <div className="text-center mb-12">
         <h1 className="text-5xl font-bold text-gray-900 mb-4">
-          🏷️ Product Registry Demo
+          🏷️ OWNIFY Demo
         </h1>
         <p className="text-xl text-gray-600 mb-6">
           NFT-based Proof of Product Ownership on Aptos Blockchain
@@ -224,7 +224,7 @@ const DemoPage: React.FC = () => {
         <div className="flex flex-wrap justify-center gap-4">
           <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
             <Package className="w-4 h-4 mr-2" />
-            Try Product Registry
+            Try Ownership Tracker
           </Button>
           <Button size="lg" variant="outline">
             <QrCode className="w-4 h-4 mr-2" />
@@ -242,7 +242,7 @@ const DemoPage: React.FC = () => {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Technical Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
           <div>
-            <strong>Smart Contract:</strong> Product Registry on Aptos<br/>
+            <strong>Smart Contract:</strong> Ownership Tracker on Aptos<br/>
             <strong>Frontend:</strong> React + Vite + TypeScript<br/>
             <strong>Styling:</strong> Tailwind CSS + Radix UI<br/>
             <strong>Wallet:</strong> Petra Wallet Integration
