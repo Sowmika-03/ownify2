@@ -79,9 +79,15 @@ const ProductRegistry: React.FC = () => {
         ],
       });
 
-      await aptosClient().waitForTransaction({
+      const transaction = await aptosClient().waitForTransaction({
         transactionHash: committedTransaction.hash,
       });
+
+      // Find the NFT address from the transaction events
+      const productMintedEvent = transaction.events.find(
+        (event) => event.type === `${PRODUCT_REGISTRY_ABI.address}::product_registry::ProductMinted`
+      );
+      const nftAddress = productMintedEvent?.data?.nft_address;
 
       // Generate QR code for the product
       const qrData = JSON.stringify({
@@ -96,8 +102,22 @@ const ProductRegistry: React.FC = () => {
       setQrCodeData(qrCodeImage);
 
       toast({
-        title: "Success!",
-        description: `Product NFT minted successfully! Product ID: ${mintForm.productId}`,
+        title: "Success! Product NFT Minted!",
+        description: (
+          <div>
+            <p>Product ID: {mintForm.productId}</p>
+            {nftAddress && (
+              <a
+                href={`https://explorer.aptoslabs.com/object/${nftAddress}?network=testnet`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:underline"
+              >
+                View NFT on Explorer
+              </a>
+            )}
+          </div>
+        ),
       });
 
       // Reset form
