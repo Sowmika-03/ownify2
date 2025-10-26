@@ -8,7 +8,7 @@
     "move:compile": "node ./scripts/move/compile",
     "move:publish": "aptos move publish --profile default --assume-yes && node ./scripts/move/get_abi.js",
     "move:upgrade": "node ./scripts/move/upgrade && node ./scripts/move/get_abi",
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "tsc && vite build",
     "deploy": "vercel",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",

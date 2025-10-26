@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSearchParams } from 'react-router-dom';
 import { 
   Package,
   QrCode,
@@ -26,10 +27,12 @@ import { aptosClient } from '@/utils/aptosClient';
 const ProductRegistry: React.FC = () => {
   const { account, connected } = useWallet();
   const { client } = useWalletClient();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductMetadata | null>(null);
   const [qrCodeData, setQrCodeData] = useState<string>('');
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('mint');
 
   // Form states
   const [mintForm, setMintForm] = useState({
@@ -43,6 +46,16 @@ const ProductRegistry: React.FC = () => {
   });
   const [activateProductId, setActivateProductId] = useState('');
   const [verifyProductId, setVerifyProductId] = useState('');
+
+  // Effect to handle verification from URL
+  React.useEffect(() => {
+    const productIdFromUrl = searchParams.get('id');
+    if (productIdFromUrl) {
+      setVerifyProductId(productIdFromUrl);
+      setActiveTab('verify');
+      handleVerifyProduct(productIdFromUrl); // Pass the ID directly to avoid state lag
+    }
+  }, [searchParams]);
 
   // Auto-fill connected wallet address when wallet connects
   React.useEffect(() => {
@@ -83,22 +96,21 @@ const ProductRegistry: React.FC = () => {
         transactionHash: committedTransaction.hash,
       });
 
+      // Check for transaction success
+      if (!transaction.success) {
+        throw new Error(`Transaction failed: ${transaction.vm_status}`);
+      }
+
       // Find the NFT address from the transaction events
       const productMintedEvent = transaction.events.find(
         (event) => event.type === `${PRODUCT_REGISTRY_ABI.address}::product_registry::ProductMinted`
       );
       const nftAddress = productMintedEvent?.data?.nft_address;
 
-      // Generate QR code for the product
-      const qrData = JSON.stringify({
-        productId: mintForm.productId,
-        batchNumber: mintForm.batchNumber,
-        contractAddress: PRODUCT_REGISTRY_ABI.address,
-        type: 'product_verification',
-        timestamp: Date.now(),
-      });
+      // Generate QR code for the product verification URL
+      const verificationUrl = `${window.location.origin}/verify?id=${mintForm.productId}`;
       
-      const qrCodeImage = await QRCode.toDataURL(qrData);
+      const qrCodeImage = await QRCode.toDataURL(verificationUrl);
       setQrCodeData(qrCodeImage);
 
       toast({
@@ -223,8 +235,9 @@ const ProductRegistry: React.FC = () => {
     }
   };
 
-  const handleVerifyProduct = async () => {
-    if (!verifyProductId) {
+  const handleVerifyProduct = async (idOverride?: string) => {
+    const idToVerify = idOverride || verifyProductId;
+    if (!idToVerify) {
       toast({ title: "Error", description: "Please enter a product ID.", variant: "destructive" });
       return;
     }
@@ -243,7 +256,7 @@ const ProductRegistry: React.FC = () => {
       const productMetadata = await aptosClient().getTableItem<ProductMetadata>({
         handle: productsTableHandle,
         data: {
-          key: verifyProductId,
+          key: idToVerify,
           key_type: "0x1::string::String",
           value_type: `${PRODUCT_REGISTRY_ABI.address}::product_registry::ProductMetadata`,
         },
@@ -252,7 +265,7 @@ const ProductRegistry: React.FC = () => {
       setSelectedProduct(productMetadata);
       toast({
         title: "Success! Product Verified!",
-        description: `Product ${verifyProductId} is authentic.`,
+        description: `Product ${idToVerify} is authentic.`,
       });
 
     } catch (error) {
@@ -268,46 +281,64 @@ const ProductRegistry: React.FC = () => {
     }
   };
 
-  /**
-   * Start QR code scanner
-   */
-  const startQRScanner = () => {
-    setScannerOpen(true);
-    
-    const scanner = new Html5QrcodeScanner(
-      "qr-reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      false
-    );
+  // Effect to manage the QR scanner lifecycle
+  React.useEffect(() => {
+    if (scannerOpen) {
+      const scanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        false
+      );
 
-    scanner.render(
-      (decodedText) => {
+      const onScanSuccess = (decodedText: string) => {
         try {
-          const qrData = JSON.parse(decodedText);
-          if (qrData.type === 'product_verification' && qrData.productId) {
-            setVerifyProductId(qrData.productId);
-            scanner.clear();
-            setScannerOpen(false);
-            handleVerifyProduct();
+          const url = new URL(decodedText);
+          const productId = url.searchParams.get('id');
+
+          if (productId) {
+            setVerifyProductId(productId);
+            scanner.clear().then(() => {
+              setScannerOpen(false);
+              handleVerifyProduct(productId);
+            });
           } else {
             toast({
               title: "Invalid QR Code",
-              description: "This QR code is not a valid product verification code.",
+              description: "This QR code does not contain a valid product ID.",
               variant: "destructive",
             });
           }
         } catch (error) {
           toast({
             title: "Invalid QR Code",
-            description: "This QR code is not a valid product verification code.",
+            description: "This QR code is not a valid product verification URL.",
             variant: "destructive",
           });
         }
-      },
-      (errorMessage) => {
-        console.log(`QR scan error: ${errorMessage}`);
-      }
-    );
+      };
+
+      const onScanFailure = (errorMessage: string) => {
+        // This callback is called frequently, so we typically ignore it 
+        // unless we want to display a continuous error message.
+        // console.log(`QR scan error: ${errorMessage}`);
+      };
+
+      scanner.render(onScanSuccess, onScanFailure);
+
+      // Cleanup function to clear the scanner when the component unmounts or scannerOpen becomes false
+      return () => {
+        if (scanner) {
+          scanner.clear().catch(err => console.error("Failed to clear scanner", err));
+        }
+      };
+    }
+  }, [scannerOpen]); // This effect runs when scannerOpen changes
+
+  /**
+   * Start QR code scanner
+   */
+  const startQRScanner = () => {
+    setScannerOpen(true);
   };
 
   /**
@@ -361,7 +392,7 @@ const ProductRegistry: React.FC = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="mint" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="mint" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="mint">Mint NFT</TabsTrigger>
           <TabsTrigger value="activate">Activate</TabsTrigger>
@@ -548,7 +579,7 @@ const ProductRegistry: React.FC = () => {
                 </div>
               </div>
               <Button 
-                onClick={handleVerifyProduct} 
+                onClick={() => handleVerifyProduct()} 
                 disabled={loading}
                 className="w-full"
               >
